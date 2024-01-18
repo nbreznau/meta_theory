@@ -16,7 +16,10 @@ devtools::install_github("https://github.com/hungnguyen167/theoRy")
 
 ```{r setup}
 
-library('theoRy')
+packages <- c('theoRy',
+              'tidyverse')
+
+pacman::p_load(packages, character.only = T)
 
 ```
 
@@ -51,19 +54,19 @@ subset_models <- function(set_matrix,
     }
     if(!(X1 %in% keep_only)){
         cmp_matrix_a <- subset(cmp_matrix_a, X1 == 0)
-        cmp_matrix_a <- cmp_matrix_a[,!grepl("X1", colnames(cmp_matrix_a))]
+        set_matrix <- set_matrix[,!grepl("X1", colnames(set_matrix))]
     }
     if(!(X2 %in% keep_only)){
         cmp_matrix_a <- subset(cmp_matrix_a, X2 == 0)
-        cmp_matrix_a <- cmp_matrix_a[,!grepl("X2", colnames(cmp_matrix_a))]
+        set_matrix <- set_matrix[,!grepl("X2", colnames(set_matrix))]
     }
     if(!(X3 %in% keep_only)){
         cmp_matrix_a <- subset(cmp_matrix_a, X3 == 0)
-        cmp_matrix_a <- cmp_matrix_a[,!grepl("X3", colnames(cmp_matrix_a))]
+        set_matrix <- set_matrix[,!grepl("X3", colnames(set_matrix))]
     }
     if(!(X4 %in% keep_only)){
         cmp_matrix_a <- subset(cmp_matrix_a, X4 == 0)
-        cmp_matrix_a <- cmp_matrix_a[,!grepl("X4", colnames(cmp_matrix_a))]
+        set_matrix <- set_matrix[,!grepl("X4", colnames(set_matrix))]
     }
     
     sub_set <- cmp_matrix_a$model
@@ -171,165 +174,17 @@ Table_2 <- subset(ls_theory$causal_matrix, model %in% c(1,3,4,5), select = c(fro
 write.csv(Table_2, here::here("Results", "Table_2.csv"), row.names = F)
 ```
 
+## Colophon
 
-
-
-### Single Components
-
-This can help us understand the role of single components. However, for most causal models a single component is rarely alone so important. For example a node often requires specific edges before it becomes important (e.g., becomes a confounder or collider)
-
-```{r qca}
-#set_truth <- truthTable(set_matrix_c, "outcome")
-
-set_pof <- pof(setms = select(set_matrix, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix)
-
-# try option relation = "sufficiency"
-
-#inclN = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
-#covN = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
-#RoN = relevence of necessity = is a necessary condition trivial
-
-set_pof
+```{r cphon}
+sessionInfo()
 ```
 
+## References
 
-### Multiple Component Analyses
 
-#### Minimize
-
-Looking at only positive outcomes (outcome = 1/MAS = {X1}), this procedure tries to find minimal sets of variables that are present in all positive cases, regardless of if these sets are present in outcome = 0 cases.
-
-```{r minimize}
-
-min_results <- minimize(set_matrix_c, details = TRUE, outcome = "outcome")
-
+```{r cite}
+packages %>%
+  map(citation) %>%
+  print(style = "text")
 ```
-
-
-#### Subsets
-
-*inclN* = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
-*covN* = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
-*RoN* = relevence of necessity = how trivial is a necessary condition trivial = 0 or relevant = 1
-```{r qca}
-s_subset <- superSubset(set_matrix_c, outcome = "outcome")
-
-s_subset
-```
-### Comparing the same # of variables
-
-We have included all subsets. So these models have different variables. We might want to know about all causal models with a fixed set of variables. 
-
-
-#### Subset list
-
-```{r subs}
-models_X1X2X4 <- subset(subset_models, X1 == 1 & X2 == 1 & X3 == 0 & X4 == 1, select = model)$model
-
-set_matrix_X1X2X4 <- subset(set_matrix, model %in% models_X1X2X4)
-# flip to not_compatible
-
-set_matrix_full_comp_X1X2X4 <- subset(set_matrix_full_comp, model %in% models_X1X2X4)
-
-set_matrix_X1X2X4 <- set_matrix_X1X2X4 %>%
-    mutate(outcome = (outcome-1)*-1)
-
-set_matrix_full_comp_X1X2X4 <- set_matrix_full_comp_X1X2X4 %>%
-    mutate(outcome = (outcome-1)*-1)
-
-```
-
-#### Subset X1X2X4 Test Compatible
-
-So far this keeps M1 as the comparison model. Keep that in mind. 
-
-We flipped the outcome because we want to know which are not test_compatible
-
-
-*inclN* = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
-*covN* = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
-*RoN* = relevence of necessity = is a necessary condition trivial
-
-Here we find that of all models with X1, X2 and X4, `r round(mean(set_matrix_X1X2X4$outcome)*100,1)`% are not test compatible with M1. If all models were equally plausible, a fair majority would not be test compatible with M1. 
-
-```{r subX1X2X4}
-REDO THIS without the X3 variables
-
-s_subset_X1X2X4 <- superSubset(dplyr::select(set_matrix_X1X2X4, -c(model, Xtest_Y)), outcome = "outcome")
-
-s_subset_X1X2X4
-```
-
-
-#### Subset X1X2X4 full model compatible
-
-Again the inverse. So not full model compatible. 
-
-
-```{r subfullx1x2x4}
-s_subset_full_X1X2X4 <- superSubset(dplyr::select(set_matrix_full_comp_X1X2X4, -c(model, Xtest_Y)), outcome = "outcome")
-
-s_subset_full_X1X2X4
-```
-
-None are compatible. Thats because our model does not have X4. To simulate this we need to compare a version of M1 that has a solo X4 (no paths to it) and compare that at full_model_compatible.
-
-We generate a new cmp_matrix for this. First we find the model number for the model with a solo X4 and give it number 7. 
-
-#### Set w/ X4 alone
-
-```{r next}
-
-
-# identify models by their variables
-subset_models_7 <- as.data.frame(cmp_matrix_7) %>%
-    mutate(X1 = ifelse(grepl("X1", unq_nodes), 1, 0),
-           X2 = ifelse(grepl("X2", unq_nodes), 1, 0),
-           X3 = ifelse(grepl("X3", unq_nodes), 1, 0),
-           X4 = ifelse(grepl("X4", unq_nodes), 1, 0)) %>%
-    subset(select = c(model, X1, X2, X3, X4))
-
-models_X1X2X4_7 <- subset(subset_models_7, X1 == 1 & X2 == 1 & X3 == 0 & X4 == 1, select = model)$model
-
-set_matrix_X1X2X4_full_7 <- subset(set_matrix_full_7, model %in% models_X1X2X4_7)
-
-set_matrix_X1X2X4_7 <- subset(set_matrix_7, model %in% models_X1X2X4_7)
-
-# remove variables with X3 as they are all 0
-set_matrix_X1X2X4_7 <- set_matrix_X1X2X4_7[,!grepl("X3", colnames(set_matrix_X1X2X4_7))]
-
-set_matrix_X1X2X4_full_7 <- set_matrix_X1X2X4_full_7[,!grepl("X3", colnames(set_matrix_X1X2X4_full_7))]
-
-
-
-# make incompatible as the full model
-
-set_matrix_X1X2X4_7 <- set_matrix_X1X2X4_7 %>%
-    mutate(outcome = (outcome-1)*-1)
-
-set_matrix_X1X2X4_full_7 <- set_matrix_X1X2X4_full_7 %>%
-    mutate(outcome = (outcome-1)*-1)
-
-
-```
-
-#### Analyze New Set
-
-```{r newwX4}
-
-s_subset_X1X2X4_7 <- superSubset(dplyr::select(set_matrix_X1X2X4_7, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
-
-s_subset_X1X2X4_7
-```
-
-
-
-```{r obs}
-s_subset_X1X2X4_full_7 <- superSubset(dplyr::select(set_matrix_X1X2X4_full_7, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
-
-s_subset_X1X2X4_full_7
-
-analyze single models!
-```
-
-

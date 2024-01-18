@@ -10,8 +10,12 @@ output: html_document
 
 ```{r setup}
 
-library('theoRy')
-library('QCA')
+packages <- c('theoRy',
+              'QCA',
+              'tidyverse',
+              'daggity') # daggity is loaded automatically with theoRy, but we include it for citation purposes
+
+pacman::p_load(packages, character.only = T)
 
 ```
 
@@ -19,16 +23,25 @@ library('QCA')
 
 ### Subset
 
-We are interested only in models with X1, X2 and X4.
+We are interested only in models with X1, X2 and X4. For this exercise we have two versions. One with reference model as Model 1, and the other as Model 7. The latter is Model 1 with the inclusion of X4 as a completely independent node. 
 
 ```{r subset}
+# Reference Model 1
 set_matrix_X124 <- subset_models(set_matrix = set_matrix,
                                  cmp_matrix = cmp_matrix,
-                                 keep_only = c(X1,X2,X4))
+                                 keep_only = c("X1", "X2", "X4"))
 
-set_matrix_full_X124 <- subset_models(set_matrix_full = set_matrix,
+set_matrix_full_X124 <- subset_models(set_matrix= set_matrix_full,
                                  cmp_matrix = cmp_matrix,
-                                 keep_only = c(X1,X2,X4))
+                                 keep_only = c("X1", "X2", "X4"))
+
+set_matrix_7_X124 <- subset_models(set_matrix = set_matrix_7,
+                                 cmp_matrix = cmp_matrix,
+                                 keep_only = c("X1", "X2", "X4"))
+
+set_matrix_full_7_X124 <- subset_models(set_matrix= set_matrix_full_7,
+                                 cmp_matrix = cmp_matrix,
+                                 keep_only = c("X1", "X2", "X4"))
 ```
 
 *inclN* = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
@@ -41,9 +54,18 @@ set_matrix_full_X124 <- subset_models(set_matrix_full = set_matrix,
 ```{r qca}
 #set_truth <- truthTable(set_matrix_c, "outcome")
 
-set_matrix_X124_pof <- pof(setms = select(set_matrix, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix)
+set_matrix_X124_pof <- pof(setms = select(set_matrix_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_X124)
 
-set_pof
+set_matrix_full_X124_pof <- pof(setms = select(set_matrix_full_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_full_X124)
+
+set_matrix_7_X124_pof <- pof(setms = select(set_matrix_7_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_7_X124)
+
+set_matrix_full_7_X124_pof <- pof(setms = select(set_matrix_full_7_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_full_7_X124)
+
+set_matrix_X124_pof
+set_matrix_full_X124_pof
+set_matrix_7_X124_pof
+set_matrix_full_7_X124_pof
 ```
 
 
