@@ -19,117 +19,133 @@ devtools::install_github("https://github.com/hungnguyen167/theoRy")
 packages <- c('theoRy',
               'tidyverse')
 
+packages_cite <- c('theoRy',
+                   'tidyverse',
+                   'ggdag',
+                   'daggity',
+                   'QCA')
+
 pacman::p_load(packages, character.only = T)
 
 ```
 
 ### Functions
 
+load from subfolder
 ```{r funct}
-# function to identify and then subset models in set_matrix by their variables
-subset_models <- function(set_matrix,
-                          cmp_matrix,
-                          keep_only = c("X1","X2","X3","X4")){
-    cmp_matrix_a <- as.data.frame(cmp_matrix) %>%
-    mutate(X1 = ifelse(grepl("X1", unq_nodes), 1, 0),
-           X2 = ifelse(grepl("X2", unq_nodes), 1, 0),
-           X3 = ifelse(grepl("X3", unq_nodes), 1, 0),
-           X4 = ifelse(grepl("X4", unq_nodes), 1, 0)) %>%
-    subset(select = c(model, X1, X2, X3, X4))
-    X1 <- "X1"
-    X2 <- "X2"
-    X3 <- "X3"
-    X4 <- "X4"
-    if(X1 %in% keep_only){
-        cmp_matrix_a <- subset(cmp_matrix_a, X1 == 1)
-    }
-    if(X2 %in% keep_only){
-        cmp_matrix_a <- subset(cmp_matrix_a, X2 == 1)
-    }
-    if(X3 %in% keep_only){
-        cmp_matrix_a <- subset(cmp_matrix_a, X3 == 1)
-    }
-    if(X4 %in% keep_only){
-        cmp_matrix_a <- subset(cmp_matrix_a, X4 == 1)
-    }
-    if(!(X1 %in% keep_only)){
-        cmp_matrix_a <- subset(cmp_matrix_a, X1 == 0)
-        set_matrix <- set_matrix[,!grepl("X1", colnames(set_matrix))]
-    }
-    if(!(X2 %in% keep_only)){
-        cmp_matrix_a <- subset(cmp_matrix_a, X2 == 0)
-        set_matrix <- set_matrix[,!grepl("X2", colnames(set_matrix))]
-    }
-    if(!(X3 %in% keep_only)){
-        cmp_matrix_a <- subset(cmp_matrix_a, X3 == 0)
-        set_matrix <- set_matrix[,!grepl("X3", colnames(set_matrix))]
-    }
-    if(!(X4 %in% keep_only)){
-        cmp_matrix_a <- subset(cmp_matrix_a, X4 == 0)
-        set_matrix <- set_matrix[,!grepl("X4", colnames(set_matrix))]
-    }
-    
-    sub_set <- cmp_matrix_a$model
-    
-    set_matrix <- subset(set_matrix, model %in% sub_set)
-    
-    return(set_matrix)
-}
+source(here::here("Code", "functions", "functions.R"))
 ```
 
-## Generate Model Multiverse
 
-### Generate causal and formula matrix
+## Generate Model Multiverses
+
+### 5 variables verses
+
+#### Generate
+
+```{r X3before}
+nodes <- c("Y","Xtest","X3","X1","X2")
+timing <- c(0,-2,1,-3,-3)
+types <- c("otc","test","ctr","ctr", "ctr")
+user_mods <- c("Y ~ Xtest + X2; Xtest ~ X1 + X2", # Model 1
+                "Y ~ Xtest + X1; Xtest ~ X1 + X2", # Model 2
+                "Y ~ Xtest + X1 + X2; Xtest ~ X1 + X2", # Model 3
+                "Y ~ Xtest + X2; Xtest ~ X1 + X2; X3 ~ Y + Xtest", # Model 4
+                "Y ~ Xtest + X2; Xtest ~ X2; X1 ~ X1" # Model 5
+                )
+
+multiverse_1 <- run_theoRy(nodes = nodes, timing = timing, types=types, include_subsets = TRUE, user_mods=user_mods)
+
+multiverse_1 <- find_add_models(ls_theory = multiverse_1, on_ls = TRUE, 
+                user_mods = c("Y ~ Xtest + X2; Xtest ~ X1 + X2; X3 ~ X3"), 
+                assert_mod_num = c(7))
+
+nodes <- c("Y","Xtest","X3","X1","X2")
+timing <- c(0,-2,-1,-3,-3)
+types <- c("otc","test","ctr","ctr", "ctr")
+
+multiverse_2 <- run_theoRy(nodes = nodes, timing = timing, types=types, include_subsets = TRUE)
+
+# Add models 6 and 7
+multiverse_2 <- find_add_models(ls_theory = multiverse_2, on_ls = TRUE, 
+                user_mods = c("Y ~ Xtest + X2 + X3; Xtest ~ X1 + X2; X3 ~ Xtest"), 
+                assert_mod_num = c(6))
+
+
+```
+#### Merge and Comp
+
+```{r mc5}
+causal_matrix_1 <- as.data.frame(multiverse_2$causal_matrix) %>%
+        mutate(multiverse = 2,
+               model= ifelse(model == 6,
+                             model, model+7))
+
+causal_matrix_2 <- as.data.frame(multiverse_1$causal_matrix) %>%
+        mutate(multiverse = 1,
+               model = ifelse(model %in% c(1,2,3,4,5,7),
+                              model, model+length(multiverse_1$formula_matrix$model)+7))
+causal_matrix_merge <- rbind(causal_matrix_1, causal_matrix_2) %>%
+    select(-prev_mod) %>%
+    arrange(model)
+
+formula_matrix_merge <- rbind(
+    as.data.frame(multiverse_2$formula_matrix) %>%
+        mutate(multiverse = 2,
+               model= ifelse(model == 6,
+                             model, model+7))
+,
+    as.data.frame(multiverse_1$formula_matrix) %>%
+        mutate(multiverse = 1,
+               model = ifelse(model %in% c(1,2,3,4,5,7),
+                              model, model+length(multiverse_1$formula_matrix$model)+7))
+) %>%
+  arrange(model)
+
+
+cmp_matrix_m1 <- add_compatible(formula_matrix_merge, ref_mod=1)
+
+cmp_matrix_m7 <- add_compatible(formula_matrix_merge, ref_mod=7)
+
+
+```
+
+
+
+### 6 variable verse
 
 Generating a 6 variable model multiverse takes about 3.5 hours. It will likely fail with less than 36 GB of RAM. Therefore, we save the results for the user and they can call them in the next code chunk.
 
 ```{r six_var_comp}
-nodes <- c("a","b","c","d","e","f")
-timing <- c(0,-1,-2,-3,-3, 1)
-types <- c("otc","test","ctr","ctr", "ctr","ctr")
-user_mods <- c("a ~ b + e; b ~ e + d", # Model 1
-               "a ~ b + d; b ~ e + d", # Model 2
-               "a ~ b + e + d; b ~ e + d", # Model 3
-               "a ~ b + e; b ~ e + d; f ~ a + b", # Model 4
-               "a ~ b + e; b ~ e; d ~ d", # Model 5
-               "a ~ b + e; b ~ d + c + e; c ~ e" # Model 6
-               )
-
-
-ls_theory <- run_theoRy(nodes = nodes, timing = timing, types=types, include_subsets = TRUE, user_mods=user_mods)
+# nodes <- c("a","b","c","d","e","f")
+# timing <- c(0,-1,-2,-3,-3, 1)
+# types <- c("otc","test","ctr","ctr", "ctr","ctr")
+# user_mods <- c("a ~ b + e; b ~ e + d", # Model 1
+#                "a ~ b + d; b ~ e + d", # Model 2
+#                "a ~ b + e + d; b ~ e + d", # Model 3
+#                "a ~ b + e; b ~ e + d; f ~ a + b", # Model 4
+#                "a ~ b + e; b ~ e; d ~ d", # Model 5
+#                "a ~ b + e; b ~ d + c + e; c ~ e" # Model 6
+#                )
+# 
+# 
+# ls_theory <- run_theoRy(nodes = nodes, timing = timing, types=types, include_subsets = TRUE, user_mods=user_mods)
 
 ```
+
+
 
 ### Load Matricies
 
 ```{r loadm}
+#ls_theory <- readRDS(here:::here("Results", "ls_theory.RDS"))
 #user define Model 7
-ls_theory <- find_add_models(ls_theory = ls_theory, on_ls = TRUE, user_mods = c("a ~ b + e; b ~ e + d; f ~ f"), assert_mod_num = c(7))
+#ls_theory <- find_add_models(
 
 #saveRDS(ls_theory, here::here("Results", "ls_theory.RDS"))
 
 ls_theory <- readRDS(here:::here("Results", "ls_theory.RDS"))
 ```
-
-### Compatibility Matrix
-
-We build two. One  with reference Model 1, and then a later one with ref Model 7 which is Model 1 plus a completely independent X4 
-
-```{r cmp}
-#cmp_matrix <- add_compatible(ls_theory$formula_matrix, ref_mod = 1)
-
-cmp_matrix_7 <- add_compatible(ls_theory$formula_matrix, ref_mod = 7)
-
-#saveRDS(cmp_matrix, here::here("Results", "cmp_matrix.RDS"))
-
-#saveRDS(cmp_matrix_7, here::here("Results", "cmp_matrix_7.RDS"))
-
-cmp_matrix <- readRDS(here::here("Results", "cmp_matrix.RDS"))
-
-cmp_matrix_7 <- readRDS(here::here("Results", "cmp_matrix_7.RDS"))
-
-```
-
 
 ### Build Set Matricies
 
@@ -139,35 +155,78 @@ These measure the outcome as incompatible models.
 
 
 ```{r build_set_matrix}
-set_matrix <- build_set_matrix(ls_theory$causal_matrix, 
-                               cmp_matrix = cmp_matrix, 
+set_matrix_m1 <- build_set_matrix(causal_matrix_merge, 
+                               cmp_matrix = cmp_matrix_m1, 
                                outcome_var = "test_compatible",
-                               outcome_positive = "incompatible")
+                               outcome_positive = "incompatible") %>%
+    mutate(outcome_m1 = outcome) %>%
+    select(-outcome)
 
-set_matrix_full <-  build_set_matrix(ls_theory$causal_matrix, cmp_matrix = cmp_matrix, outcome_var= "full_model_compatible", outcome_positive = "incompatible") %>%
-    mutate(outcome_full = outcome) %>%
-    select(model,outcome_full)
+set_matrix_m7 <- build_set_matrix(causal_matrix_merge, 
+                               cmp_matrix = cmp_matrix_m7, 
+                               outcome_var = "test_compatible",
+                               outcome_positive = "incompatible") %>%
+    mutate(outcome_m7 = outcome) %>%
+    select(model, outcome_m7) %>%
+    subset(model != 1)
+
+set_matrix_m7_m1 <- build_set_matrix(causal_matrix_merge, 
+                               cmp_matrix = cmp_matrix_m7, 
+                               outcome_var = "test_compatible",
+                               outcome_positive = "incompatible") %>%
+    mutate(outcome_m1 = NA,
+           outcome_m7 = outcome,
+           outcome_full_m1 = NA) %>%
+    subset(model == 1, select = -outcome)
+
+set_matrix_full_m1 <- build_set_matrix(causal_matrix_merge, 
+                               cmp_matrix = cmp_matrix_m1, 
+                               outcome_var = "full_model_compatible",
+                               outcome_positive = "incompatible") %>%
+    mutate(outcome_full_m1 = outcome) %>%
+    select(model, outcome_full_m1)
+
+set_matrix_full_m7 <- build_set_matrix(causal_matrix_merge, 
+                               cmp_matrix = cmp_matrix_m7, 
+                               outcome_var = "full_model_compatible",
+                               outcome_positive = "incompatible") %>%
+    mutate(outcome_full_m7 = outcome) %>%
+    subset(select = c(model, outcome_full_m7))
+
+set_matrix <- set_matrix_m1 %>%
+    left_join(set_matrix_m7, by = "model") %>%
+    left_join(set_matrix_full_m1, by = "model") %>%
+    rbind(set_matrix_m7_m1) %>%
+    left_join(set_matrix_full_m7, by = "model")
 
 set_matrix <- set_matrix %>%
-    left_join(set_matrix_full, by = "model")
+    left_join(select(cmp_matrix_m1, model, multiverse), by = "model")
 
-rm(set_matrix_full)
 
-# combine outcome and outcome_full
-
-set_matrix_7 <-  build_set_matrix(ls_theory$causal_matrix, cmp_matrix = cmp_matrix_7, outcome_var= "test_compatible", outcome_positive = "incompatible")
-
-set_matrix_full_7 <-  build_set_matrix(ls_theory$causal_matrix, cmp_matrix = cmp_matrix_7, outcome_var= "full_model_compatible", outcome_positive = "incompatible") %>%
-    mutate(outcome_full = outcome) %>%
-    select(model,outcome_full)
-
-set_matrix_7 <- set_matrix_7 %>%
-    left_join(set_matrix_full_7, by = "model")
-
-rm(set_matrix_full_7)
-
+rm(set_matrix_m1, set_matrix_m7, set_matrix_full_m1, set_matrix_full_m7, set_matrix_m7_m1)
 ```
 
+
+
+## Subsets 
+
+
+### 1. a Potential Collider
+
+We are interested only in models with X1, X2 and X4. For this exercise we have two versions. One with reference model as Model 1, and the other as Model 7. The latter is Model 1 with the inclusion of X4 as a completely independent node. 
+
+```{r subset}
+# Reference Model 1
+set_matrix_X123_only <- subset_models(set_matrix, cmp_matrix_m1, keep_only = c("X1", "X2", "X3"))
+
+set_matrix_sub <- as.data.frame(cmp_matrix_m1) %>%
+    mutate(inclX3 = ifelse(grepl("X3", unq_nodes), 1, 0)) %>%
+    select(model, inclX3) 
+
+set_matrix_X123_only <- left_join(set_matrix_X123_only, set_matrix_sub, by = "model") %>%
+    subset(model != 7)
+
+```
 
 
 
@@ -176,7 +235,13 @@ rm(set_matrix_full_7)
 ### Table 1. DAG Plots
 
 ```{r gen_plots, warning = F}
-dag_plots <- plot_dag(ls_theory, choose_plots=c(1,2,3,4,5,6), save_path=paste0(here::here("Results"))) 
+dag_plots <- plot_dag(multiverse_1, choose_plots=c(1,2,3,4,5), save_path=paste0(here::here("Results"))) 
+
+for(plot in dag_plots){
+    print(plot)
+}
+
+dag_plots <- plot_dag(multiverse_2, choose_plots=c(6,7), save_path=paste0(here::here("Results"))) 
 
 for(plot in dag_plots){
     print(plot)
@@ -186,52 +251,29 @@ for(plot in dag_plots){
 ### Table 2. Example Matrix
 
 ```{r t2}
-Table_2 <- subset(ls_theory$causal_matrix, model %in% c(1,3,4,5), select = c(from, to, timing_from, timing_to, model))
+Table_2 <- subset(causal_matrix_merge, model %in% c(1,3,4,5), select = c(from, to, timing_from, timing_to, model))
 
 write.csv(Table_2, here::here("Results", "Table_2.csv"), row.names = F)
 ```
 
-## Subset for 1. a Potential Collider
+### Figure X. Meta-Visualization
 
-We are interested only in models with X1, X2 and X4. For this exercise we have two versions. One with reference model as Model 1, and the other as Model 7. The latter is Model 1 with the inclusion of X4 as a completely independent node. 
+```{r metaplot}
 
-```{r subset}
-# Reference Model 1
-set_matrix_X124 <- set_matrix[,!grepl("X3", colnames(set_matrix))]
+# x <- subset(set_matrix_X123_only, multiverse ==1) %>%
+#     rowwise() %>%
+#     mutate(large = sum(c_across(X1_Xtest:X2)))
 
-cmp_matrix_sub <- as.data.frame(cmp_matrix) %>%
-    mutate(X1 = ifelse(grepl("X1", unq_nodes), 1, 0),
-           X2 = ifelse(grepl("X2", unq_nodes), 1, 0),
-           X3 = ifelse(grepl("X3", unq_nodes), 1, 0),
-           X4 = ifelse(grepl("X4", unq_nodes), 1, 0)) %>%
-    subset(grepl("X1", unq_nodes) & grepl("X2", unq_nodes) & !grepl("X3", unq_nodes)) %>%
-    select(model)
+x <- as.data.frame(multiverse_1$causal_matrix) %>% group_by(model) %>%
+    mutate(rows = n()) %>%
+    select(model, rows)
+m <- max(x$rows)
+plot_dag(multiverse_1, choose_plots = multiverse_1$causal_matrix$model[multiverse_1$causal_matrix$model == x$model[x$rows == m]], save_path = paste0(here::here("Results")))
 
-set_matrix_X124 <- subset(set_matrix_X124, model %in% cmp_matrix_sub$model)
+rm(x,m)
 
-set_matrix_X124_X4only <- subset_models(set_matrix = set_matrix_X124,
-                                        cmp_matrix = cmp_matrix,
-                                        keep_only = c("X1", "X2", "X4"))
-
-# Reference Model 7
-set_matrix_7_X124 <- set_matrix[,!grepl("X3", colnames(set_matrix_7))]
-
-cmp_matrix_7_sub <- as.data.frame(cmp_matrix_7) %>%
-    mutate(X1 = ifelse(grepl("X1", unq_nodes), 1, 0),
-           X2 = ifelse(grepl("X2", unq_nodes), 1, 0),
-           X3 = ifelse(grepl("X3", unq_nodes), 1, 0),
-           X4 = ifelse(grepl("X4", unq_nodes), 1, 0)) %>%
-    subset(grepl("X1", unq_nodes) & grepl("X2", unq_nodes) & !grepl("X3", unq_nodes)) %>%
-    select(model)
-
-set_matrix_7_X124 <- subset(set_matrix_7, model %in% cmp_matrix_7_sub$model)
-
-set_matrix_7_X124_X4only <- subset_models(set_matrix = set_matrix_7,
-                                 cmp_matrix = cmp_matrix_7,
-                                 keep_only = c("X1", "X2", "X4"))
-
-rm(cmp_matrix_sub, cmp_matrix_7_sub)
 ```
+
 
 
 ## Save Environment
@@ -250,7 +292,7 @@ sessionInfo()
 
 
 ```{r cite}
-packages %>%
+packages_cite %>%
   map(citation) %>%
   print(style = "text")
 ```

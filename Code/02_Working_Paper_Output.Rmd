@@ -12,8 +12,7 @@ output: html_document
 
 packages <- c('theoRy',
               'QCA',
-              'tidyverse',
-              'daggity') # daggity is loaded automatically with theoRy, but we include it for citation purposes
+              'tidyverse') 
 
 pacman::p_load(packages, character.only = T)
 
@@ -28,58 +27,113 @@ load(here::here("Results", "01_Data_Setup.Rdata"))
 ## 1. A Potential Collider
 
 
-*inclN* = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
-*covN* = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
-*RoN* = relevence of necessity = is a necessary condition trivial
-
 ### Table 3. Model Comparison Stats
+
 
 ```{r tbl3}
 tbl3 <- matrix(nrow = 14, ncol = 4)
 
 tbl3[,1] <- c("Model 1 Comparisons", "Reference Model", "Multiverse Criteria", "All Models Compared", "N Comparison Models", "Test Compatible =", "Full Model Compatible =", "Model 7 Comparisons", "Reference Model", "Multiverse Criteria", "All Models compared", "N Comparison Models", "Test Compatible", "Full Model Compatible")
 
+set_matrixm <- subset(set_matrix, multiverse == 1)
+set_matrixm123 <- subset(set_matrix_X123_only, multiverse == 1)
 # this can be done with set_matrix
 
-tbl3[,2] <- c("", paste0(ls_theory$formula_matrix$formula[ls_theory$formula_matrix$model == 1],"(Model 1)"), "Models with X1 and X2, and models with X1, X2 and X4", "", nrow(set_matrix_X124), 
-              paste0(round(100-(100*(nrow(set_matrix_X124[set_matrix_X124$outcome == 1,])/nrow(set_matrix_X124))),1),"%"),
-              paste0(round(100-(100*(nrow(set_matrix_X124[set_matrix_X124$outcome_full == 1,])/nrow(set_matrix_X124))),1),"%"),
-              "", paste0(ls_theory$formula_matrix$formula[ls_theory$formula_matrix$model == 7],"(Model 7)"), "Models with X1, X2 and X4", "", nrow(set_matrix_7_X124),
-              paste0(round(100-(100*(nrow(set_matrix_7_X124[set_matrix_7_X124$outcome == 1,])/nrow(set_matrix_7_X124))),1),"%"),
-              paste0(round(100-(100*(nrow(set_matrix_7_X124[set_matrix_7_X124$outcome_full == 1,])/nrow(set_matrix_7_X124))),1),"%"))
+tbl3[,2] <- c("", paste0(formula_matrix_merge$formula[formula_matrix_merge$model == 1],"(Model 1)"), "Models with X1 and X2, and models with X1, X2 and X3", "", nrow(set_matrixm), 
+              paste0(round(100-(100*(nrow(set_matrixm[set_matrixm$outcome_m1 == 1,])/nrow(set_matrixm))),1),"%"),
+              paste0(round(100-(100*(nrow(set_matrixm[set_matrixm$outcome_full_m1 == 1,])/nrow(set_matrixm))),1),"%"),
+              "", paste0(formula_matrix_merge$formula[formula_matrix_merge$model == 7],"(Model 7)"), "Models with X1, X2 and X3", "", nrow(set_matrixm),
+              paste0(round(100-(100*(nrow(set_matrixm[set_matrixm$outcome_m7 == 1,])/nrow(set_matrixm))),1),"%"),
+              paste0(round(100-(100*(nrow(set_matrixm[set_matrixm$outcome_full_m7 == 1,])/nrow(set_matrixm))),1),"%"))
 
 tbl3[,3] <- c("", "", "", "Only Models w X4 Compared", "N Comparison Models", "Test Compatible =", "Full Model Compatible =", "", "", "", "Only Models w X4 Compared", "N Comparison Models", "Test Compatible", "Full Model Compatible")
 
-tbl3[,4] <- c("", "", "", "", nrow(set_matrix_7_X124), 
-              paste0(round(100-(100*(nrow(set_matrix_X124_X4only[set_matrix_X124_X4only$outcome == 1,])/nrow(set_matrix_X124_X4only))),1),"%"),
-              paste0(round(100-(100*(nrow(set_matrix_X124_X4only[set_matrix_X124_X4only$outcome_full == 1,])/nrow(set_matrix_X124_X4only))),1),"%"),
+tbl3[,4] <- c("", "", "", "", nrow(set_matrixm123), 
+              paste0(round(100-(100*(nrow(set_matrixm123[set_matrixm123$outcome_m1 == 1,])/nrow(set_matrixm123))),1),"%"),
+              paste0(round(100-(100*(nrow(set_matrixm123[set_matrixm123$outcome_full_m1 == 1,])/nrow(set_matrixm123))),1),"%"),
               "", "", "", "",
-              nrow(set_matrix_7_X124_X4only), 
-              paste0(round(100-(100*(nrow(set_matrix_7_X124_X4only[set_matrix_7_X124_X4only$outcome == 1,])/nrow(set_matrix_7_X124_X4only))),1),"%"),
-              paste0(round(100-(100*(nrow(set_matrix_7_X124_X4only[set_matrix_7_X124_X4only$outcome_full == 1,])/nrow(set_matrix_7_X124_X4only))),1),"%")
+              nrow(set_matrixm123), 
+              paste0(round(100-(100*(nrow(set_matrixm123[set_matrixm123$outcome_m7 == 1,])/nrow(set_matrixm123))),1),"%"),
+              paste0(round(100-(100*(nrow(set_matrixm123[set_matrixm123$outcome_full_m7 == 1,])/nrow(set_matrixm123))),1),"%")
               )
 
 write.csv(tbl3, here::here("Results", "Table_3.csv"), row.names = F)
 ```
 
+### Incorrect Adjustment
+
+Models that are incorrectly adjusted out of the multiverse for Model 1.
+
+```{r adstats}
+
+```
+
+### Model 1 base multiverse
+
+We subset models to have the same components of Model 1, with X4 being the only uncertain node and vary all paths with it. 
+
+
+```{r subverseX4}
+# find models with Model 1 paths constant
+
+
+```
 
 ### Single Components
 
+When all models include the same variables, it is not necessary to use their nodes as predictors. In the first two examples, X1 and X2 are in all models, and in the second two X1, X2 and X4. Therefore these should be removed as single components as their presence implies no arrows going to them and leads to confounding of the effect we are searching for. 
+
+
+*inclN* = inclusion = what percent of all models have outcome (Y = 1) and this component (X = 1)
+*covN* = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
+*RoN* = relevance of necessity = is a necessary condition trivial
+
 ```{r qca}
-#set_truth <- truthTable(set_matrix_c, "outcome")
 
-set_matrix_X124_pof <- pof(setms = select(set_matrix_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_X124)
+# make multiverse specific set_matricies
+set_matrixm <- subset(set_matrix, multiverse == 1)
 
-set_matrix_full_X124_pof <- pof(setms = select(set_matrix_full_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_full_X124)
+set_matrixm123 <- subset(set_matrix_X123_only, multiverse == 1)
 
-set_matrix_7_X124_pof <- pof(setms = select(set_matrix_7_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_7_X124)
+pof_set_matrix_mverse1 <- pof(setms = subset(set_matrix_X123_only, model != 1 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_m1", data = subset(set_matrix_X123_only, model != 1 & multiverse == 1))
 
-set_matrix_full_7_X124_pof <- pof(setms = select(set_matrix_full_7_X124, -c(model,outcome, Xtest_Y)), outcome = "outcome", data = set_matrix_full_7_X124)
+pof_set_matrix_mverse2 <- pof(setms = subset(set_matrix_X123_only, model != 1 & multiverse == 2, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_m1", data = subset(set_matrix_X123_only, model != 1 & multiverse == 2))
 
-set_matrix_X124_pof
-set_matrix_full_X124_pof
-set_matrix_7_X124_pof
-set_matrix_full_7_X124_pof
+pof_full_set_matrix_mverse1 <- pof(setms = subset(set_matrix_X123_only, model != 1 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_full_m1", data = subset(set_matrix_X123_only, model != 1 & multiverse == 1))
+
+pof_full_set_matrix_mverse2 <- pof(setms = subset(set_matrix_X123_only, model != 1 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_full_m1", data = subset(set_matrix_X123_only, model != 1 & multiverse == 1))
+
+#Model 7
+pof_m7_set_matrix_mverse1 <- pof(setms = subset(set_matrix_X123_only, model != 7 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_m7", data = subset(set_matrix_X123_only, model != 7 & multiverse == 1))
+
+pof_m7_set_matrix_mverse2 <- pof(setms = subset(set_matrix_X123_only, model != 7 & multiverse == 2, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_m7", data = subset(set_matrix_X123_only, model != 7 & multiverse == 2))
+
+pof_m7_full_set_matrix_mverse1 <- pof(setms = subset(set_matrix_X123_only, model != 7 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_full_m7", data = subset(set_matrix_X123_only, model != 7 & multiverse == 1))
+
+pof_m7_full_set_matrix_mverse2 <- pof(setms = subset(set_matrix_X123_only, model != 7 & multiverse == 1, -c(model, outcome_m1:outcome_full_m7, Xtest_Y, X1, X2, X3, multiverse)), outcome = "outcome_full_m7", data = subset(set_matrix_X123_only, model != 7 & multiverse == 1))
+
+# testing the high scoring combinations
+#FigX lower-left
+pof_set_matrix_full_m7_set1  <- pof(setms = X1_Y*X1_Xtest, outcome = "outcome_m7", data = subset(set_matrixm123, model != 7))
+pof_set_matrix_full_m7_set1
+
+#FigX lower-right
+pof_set_matrix_full_m7_set2  <- pof(setms = Xtest_X3*Y_X3, outcome = "outcome_m7", data = set_matrixm123)
+pof_set_matrix_full_m7_set2
+
+#FigX upper-right
+set_matrix_full_7_X124_X4only_pof_set <- pof(Xtest_X3*Y_X3 <- outcome_full_m7, data = set_matrixm123)
+set_matrix_full_7_X124_X4only_pof_set
+
+#FigX upper-left
+set_matrix_full_7_X124_X4only_pof_set1 <- pof(X1_X3*X2_X3, outcome = "outcome_full_m7", data = set_matrixm123)
+set_matrix_full_7_X124_X4only_pof_set1
+
+pof_set_matrix_mverse1
+pof_full_set_matrix_mverse1
+pof_m7_set_matrix_mverse1
+pof_m7_full_set_matrix_mverse1
+
 ```
 
 
@@ -91,13 +145,21 @@ Looking at only positive outcomes (outcome = 1/MAS = {X1}), this procedure tries
 
 ```{r minimize}
 
-min_results_X124 <- minimize(dplyr::select(set_matrix_X124, -c(model, Xtest_Y)), details = TRUE, outcome = "outcome")
+#tt_set_matrix_X124 <- truthTable(select(set_matrix_X124, -c(model, outcome_full, Xtest_Y, X1, X2, inclX4, X4), outcome = "outcome"))
 
-min_results_full_X124 <- minimize(dplyr::select(set_matrix_full_X124, -c(model, Xtest_Y)), details = TRUE, outcome = "outcome")
+min_results_X124 <- minimize(dplyr::select(set_matrix_X123_only, -c(model, outcome_full, Xtest_Y, X1, X2, X4)), details = TRUE, outcome = "outcome")
 
-min_results_7_X124 <- minimize(dplyr::select(set_matrix_7_X124, -c(model, Xtest_Y)), details = TRUE, outcome = "outcome")
+min_results_full_X124 <- minimize(dplyr::select(set_matrix_X124, -c(model, outcome, Xtest_Y, X1, X2, X4)), details = TRUE, outcome = "outcome_full")
 
-min_results_full_7_X124 <- minimize(dplyr::select(set_matrix_full_7_X124, -c(model, Xtest_Y)), details = TRUE, outcome = "outcome")
+min_results_7_X124 <- minimize(dplyr::select(set_matrix_7_X124, -c(model, outcome_full, Xtest_Y, X1, X2, X4)), details = TRUE, outcome = "outcome")
+
+min_results_7_X124_X4only <- minimize(dplyr::select(set_matrix_7_X124_X4only, -c(model, outcome_full, Xtest_Y, X1, X2, X4)), details = TRUE, outcome = "outcome")
+
+min_results_full_7_X124_X4only <- minimize(dplyr::select(set_matrix_7_X124_X4only, -c(model, outcome, Xtest_Y, X1, X2, X4)), details = TRUE, outcome = "outcome_full")
+
+
+min_results_7_X124_X4only
+min_results_full_7_X124_X4only
 
 ```
 
@@ -108,21 +170,33 @@ min_results_full_7_X124 <- minimize(dplyr::select(set_matrix_full_7_X124, -c(mod
 *covN* = necessity coverage = what percent of all models with this component (X = 1) have the outcome (Y = 1)
 *RoN* = relevence of necessity = how trivial is a necessary condition trivial = 0 or relevant = 1
 ```{r qca}
-sup_subset_X124 <- superSubset(dplyr::select(set_matrix_X124, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
+sup_subset_X124 <- superSubset(dplyr::select(set_matrix_X124, -c(model, Xtest_Y, X1, X2, X4, outcome_full)), outcome = "outcome", ron.cut = 0.001)
 
-#There are no combinations that are not compatible with ron > 0
+sup_subset_full_X124 <- superSubset(dplyr::select(set_matrix_X124, -c(model, Xtest_Y, X1, X2, X4,)), outcome = "outcome_full", ron.cut = 0.001)
 
-#sup_subset_full_X124 <- superSubset(dplyr::select(set_matrix_full_X124, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
+sup_subset_7_X124_nec <- superSubset(dplyr::select(set_matrix_7_X124, -c(model, outcome_full, Xtest_Y, X1, X2, X4)), outcome = "outcome", ron.cut = 0.001)
 
-sup_subset_7_X124 <- superSubset(dplyr::select(set_matrix_7_X124, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
+sup_subset_7_X124_suf <- superSubset(dplyr::select(set_matrix_7_X124, -c(model, outcome_full, Xtest_Y, X1, X2, X4)), outcome = "outcome", ron.cut = 0.001, relation = "sufficiency")
 
-sup_subset_full_7_X124 <- superSubset(dplyr::select(set_matrix_full_7_X124, -c(model, Xtest_Y)), outcome = "outcome", ron.cut = 0.001)
+sup_subset_full_7_X124_X4only_nec <- superSubset(dplyr::select(set_matrix_7_X124_X4only, -c(model, outcome, Xtest_Y, X1, X2, X4)), outcome = "outcome_full", ron.cut = 0.001, relation = "necessity")
 
-sup_subset_X124
-sup_subset_full_X124
-sup_subset_7_X124
-sup_subset_full_7_X124
+sup_subset_full_7_X124_X4only_suf <- superSubset(dplyr::select(set_matrix_7_X124_X4only, -c(model, outcome, Xtest_Y, X1, X2, X4)), outcome = "outcome_full", ron.cut = 0.001, relation = "sufficiency")
 
+# sup_subset_X124
+# #sup_subset_full_X124
+# sup_subset_7_X124
+sup_subset_7_X124_nec
+sup_subset_7_X124_suf
+sup_subset_full_7_X124_X4only_nec
+sup_subset_full_7_X124_X4only_suf
+
+```
+
+## 2. Limited Path Certainty
+
+
+
+```{r limp}
 
 ```
 
@@ -137,7 +211,7 @@ sessionInfo()
 
 
 ```{r cite}
-packages %>%
+packages_cite %>%
   map(citation) %>%
   print(style = "text")
 ```
